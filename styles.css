@@ -1,0 +1,139 @@
+:root{
+  --bg:#0b1220;
+  --card:#0f1724;
+  --accent:#ffcc00;
+  --muted:#9aa4b2;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#081022, #071022 60%);color:#e6eef6}
+header{padding:24px;text-align:center}
+main{display:grid;grid-template-columns:minmax(300px,1fr) minmax(320px,1.2fr);gap:18px;padding:18px;max-width:1080px;margin:0 auto}
+.panel{background:var(--card);padding:18px;border-radius:18px;box-shadow:0 14px 40px rgba(2,6,23,.35);border:1px solid rgba(255,255,255,.03)}
+h1{margin:.2rem 0;font-size:clamp(2rem,2.25vw,2.6rem)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+button{background:var(--accent);color:#102226;border:0;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+button:hover{transform:translateY(-1px);filter:brightness(1.05)}
+button.secondary{background:#2b3948;color:var(--muted)}
+input,select{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:inherit}
+.pokedex,.team-list{list-style:none;padding:0;margin:8px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.pokedex li,.team-list li{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);padding:8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.pokedex li:hover{outline:2px solid rgba(255,204,0,.12)}
+.poke-sprite{width:40px;height:40px;border-radius:6px;background:#0a0f17;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted)}
+.poke-sprite img{width:40px;height:40px;object-fit:contain}
+.type-badge{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.04);font-size:12px;margin-right:6px}
+.poke-row{display:flex;align-items:center;gap:10px}
+footer{padding:18px;text-align:center;color:var(--muted)}
+
+/* Training styles */
+.training-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.training-controls label{display:flex;align-items:center;gap:8px;font-size:.96rem;color:var(--muted)}
+.training-view{margin-top:12px;display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
+.flashcard{width:100%;max-width:520px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-radius:16px;padding:18px;display:flex;align-items:center;gap:16px}
+.flash-sprite{width:100px;height:100px;border-radius:14px;background:#07131a;display:flex;align-items:center;justify-content:center}
+.flash-sprite img{width:88px;height:88px;object-fit:contain}
+.flashcard .front{font-size:22px;font-weight:700}
+.flashcard .back{font-size:15px;color:var(--muted);line-height:1.5}
+.quiz-settings{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;width:100%;margin-bottom:16px}
+.quiz-label{font-size:.92rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.level-options{display:flex;flex-wrap:wrap;gap:10px}
+.level-btn{border:1px solid rgba(255,255,255,.08);background:#102031;color:#e6eef6;padding:10px 16px;border-radius:999px;cursor:pointer;transition:transform .18s ease,background .18s ease,box-shadow .18s ease}
+.level-btn:hover{transform:translateY(-1px)}
+.level-btn.active{background:var(--accent);color:#102226;box-shadow:0 12px 24px rgba(255,204,0,.18)}
+.quiz .question{font-size:18px;margin-bottom:12px}
+.choices{display:grid;gap:12px}
+.choice{padding:14px 16px;border-radius:14px;background:#0b1622;cursor:pointer;border:1px solid rgba(255,255,255,.05);transition:transform .18s ease,box-shadow .18s ease}
+.choice:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,.15)}
+.choice.correct{outline:3px solid rgba(76,175,80,.18)}
+.choice.wrong{outline:3px solid rgba(244,67,54,.18)}
+
+/* Large, modern quiz styles */
+.quiz-card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.008));border-radius:20px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:18px;box-shadow:0 18px 45px rgba(2,6,23,.35);max-width:760px;width:100%;margin:0 auto}
+.training-section .quiz{display:flex;justify-content:center;width:100%}
+.quiz .question{display:none}
+#questionArea{width:100%;max-width:760px}
+#quiz .controls{justify-content:center;width:100%}
+#score{margin-left:0;color:var(--muted)}
+.quiz-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}
+.quiz-score{font-size:1rem;color:var(--muted);min-width:120px;text-align:center}
+.type-chip{padding:12px 18px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-weight:700;letter-spacing:.04em}
+
+/* Results modal */
+.results-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(rgba(2,6,15,.5),rgba(2,6,15,.75));backdrop-filter:blur(4px);z-index:120}
+.results-card{background:var(--card);padding:22px;border-radius:14px;max-width:420px;text-align:center;box-shadow:0 18px 40px rgba(2,6,23,.6);border:1px solid rgba(255,255,255,.03)}
+.results-summary{font-size:1.1rem;margin:12px 0;color:var(--muted)}
+.results-actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.results-actions .start-btn{padding:10px 12px}
+.results-actions .start-btn.secondary{background:#2b3948;color:var(--muted)}
+
+/* Type guide */
+.type-guide{width:100%;max-width:980px;margin:12px auto 0;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-radius:12px;border:1px solid rgba(255,255,255,.03);overflow:auto}
+.type-table{border-collapse:collapse;width:100%;min-width:900px}
+.type-table th,.type-table td{border:1px solid rgba(255,255,255,.04);padding:6px 8px;text-align:center;font-size:13px}
+.type-table th{background:rgba(255,255,255,.02);position:sticky;top:0;z-index:2}
+.type-table .type-name{background:rgba(255,255,255,.02);font-weight:700;position:sticky;left:0;z-index:1}
+.cell-2x{background:linear-gradient(90deg,rgba(76,175,80,.12),transparent);color:#bff2c6}
+.cell-05x{background:linear-gradient(90deg,rgba(255,152,0,.08),transparent);color:#ffd7b3}
+.cell-1x{background:transparent;color:var(--muted)}
+.type-legend{display:flex;gap:12px;justify-content:center;margin-top:8px;color:var(--muted)}
+.type-swatch{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.02)}
+
+/* Responsive type-grid for small screens */
+.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.type-card{padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.01),transparent);border:1px solid rgba(255,255,255,.03)}
+.type-card-title{font-weight:800;margin-bottom:8px}
+.type-card-beats,.type-card-weak{font-size:13px;color:var(--muted);margin-bottom:6px}
+
+/* Stats panel */
+.panel-stats{margin:10px 0;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.01),transparent);border-radius:10px;border:1px solid rgba(255,255,255,.03);color:var(--muted);font-size:14px}
+.panel-stats b{color:var(--accent);font-weight:700}
+.panel-stats ul{margin:6px 0 0 14px;padding:0}
+.panel-stats li{margin:4px 0}
+
+/* small loading spinner for quiz button */
+.loading-dot{display:inline-block;width:8px;height:8px;background:#fff;border-radius:50%;margin-left:8px;animation:blink 1s linear infinite}
+@keyframes blink{50%{opacity:.2}100%{opacity:1}}
+.quiz-header{width:100%;display:flex;justify-content:space-between;align-items:center}
+.quiz-progress{flex:1;height:10px;background:rgba(255,255,255,.04);border-radius:999px;overflow:hidden;margin-left:12px;margin-right:12px}
+.quiz-progress > i{display:block;height:100%;background:linear-gradient(90deg,#ffcc00,#ff8a00);width:0%}
+.quiz-sprite{width:140px;height:140px;border-radius:12px;background:#07131a;display:flex;align-items:center;justify-content:center}
+.quiz-sprite img{width:120px;height:120px;object-fit:contain}
+.quiz-question{font-size:22px;font-weight:700;text-align:center}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.choice{padding:14px 18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.01),transparent);border:1px solid rgba(255,255,255,.04);font-size:16px;text-align:center}
+.choice:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(2,6,23,.4)}
+.choice.answered{opacity:.9}
+.feedback{font-weight:700}
+
+@media (max-width:960px){
+  main{grid-template-columns:1fr}
+  .panel{padding:16px}
+  .training-controls{justify-content:center}
+}
+
+@media (max-width:700px){
+  .quiz-card{padding:14px}
+  .quiz-sprite{width:100px;height:100px}
+  .quiz-question{font-size:18px}
+  .choices{grid-template-columns:1fr}
+  .level-btn{width:100%;text-align:center}
+  .type-table{min-width:unset}
+}
+
+.feedback{margin-top:10px;padding:10px;border-radius:12px;max-width:420px}
+.feedback.ok{background:linear-gradient(90deg,rgba(76,175,80,.12),transparent);color:#bff2c6;border:1px solid rgba(76,175,80,.22)}
+.feedback.bad{background:linear-gradient(90deg,rgba(244,67,54,.08),transparent);color:#ffd6d6;border:1px solid rgba(244,67,54,.12)}
+
+/* Start modal */
+.start-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(rgba(2,6,15,.6),rgba(2,6,15,.85));backdrop-filter:blur(4px);z-index:80}
+.start-card{background:var(--card);padding:22px;border-radius:12px;max-width:520px;text-align:center;box-shadow:0 10px 40px rgba(2,6,23,.7)}
+.start-options{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.start-btn{padding:10px 14px;border-radius:8px;border:0;background:#21313f;color:var(--muted);cursor:pointer}
+.start-btn.primary{background:var(--accent);color:#102226}
+.start-card .muted{color:var(--muted);margin-top:8px}
+
+/* subtle pokemon UI touches */
+.panel h2{display:flex;align-items:center;gap:10px}
+.panel h2:before{content:'\1F40D';font-size:18px}
+
+/* Hide team creation by default; appears only if selected in the start menu */
+.team-section{display:none}
