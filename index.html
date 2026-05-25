@@ -3,83 +3,129 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pokemon Champions — VGC Test</title>
+  <meta name="description" content="Plataforma de entrenamiento VGC para Pokémon Champions" />
+  <title>Pokémon Champions VGC — Entrena, Aprende, Compite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
-    <h1>Pokemon Champions — VGC (Página de test)</h1>
-    <p>Interfaz rápida para probar ideas: equipos, flashcards y quiz por niveles.</p>
+    <div class="header-content">
+      <div class="header-branding">
+        <h1>🏆 Pokémon Champions VGC</h1>
+        <p>Plataforma de entrenamiento profesional para jugadores competitivos</p>
+      </div>
+    </div>
   </header>
 
-  <!-- Pantalla inicial para seleccionar modo -->
+  <!-- Modal de inicio -->
   <div id="startModal" class="start-modal">
     <div class="start-card">
-      <h2>Bienvenido — Selecciona un modo</h2>
+      <h2>Elige tu modo de entrenamiento</h2>
+      <p class="start-subtitle">Selecciona cómo quieres entrenar hoy</p>
       <div class="start-options">
-        <button data-mode="quiz" class="start-btn primary">Quiz (Recomendado)</button>
-        <button data-mode="flash" class="start-btn">Flashcards</button>
-        <button data-mode="team" class="start-btn">Equipo / Pruebas</button>
+        <button data-mode="quiz" class="start-btn primary">
+          <span class="btn-icon">📝</span>
+          <span>Quiz</span>
+          <span class="btn-hint">Pon a prueba tus conocimientos</span>
+        </button>
+        <button data-mode="flash" class="start-btn">
+          <span class="btn-icon">🎴</span>
+          <span>Flashcards</span>
+          <span class="btn-hint">Aprende tipo por tipo</span>
+        </button>
+        <button data-mode="team" class="start-btn">
+          <span class="btn-icon">⚙️</span>
+          <span>Team Builder</span>
+          <span class="btn-hint">Crea y prueba equipos</span>
+        </button>
       </div>
-      <p class="muted">Puedes cambiar de modo luego en Entrenamiento.</p>
-      
+      <p class="start-footer">Puedes cambiar de modo en cualquier momento</p>
     </div>
   </div>
 
   <main>
     <section class="panel team-section">
-      <h2>Generador de equipo</h2>
+      <div class="panel-header">
+        <h2>🎯 Team Builder</h2>
+        <p class="panel-subtitle">Crea tu equipo de batalla competitivo</p>
+      </div>
       <div class="controls">
-        <button id="randomTeam">Generar equipo aleatorio</button>
-        <button id="clearTeam">Limpiar</button>
+        <button id="randomTeam" class="btn-primary">Generar aleatorio</button>
+        <button id="clearTeam" class="btn-secondary">Limpiar equipo</button>
       </div>
       <div id="teamStats" class="panel-stats"></div>
       <ul id="teamList" class="team-list"></ul>
     </section>
 
     <section class="panel team-section">
-      <h2>Pokédex reducida (clic para añadir)</h2>
-      <input id="search" placeholder="Buscar por nombre..." />
+      <div class="panel-header">
+        <h2>📋 Pokédex Champions</h2>
+        <p class="panel-subtitle">Selecciona pokémon para tu equipo</p>
+      </div>
+      <div class="search-wrapper">
+        <input id="search" type="text" placeholder="Buscar por nombre..." class="search-input" />
+      </div>
       <ul id="pokedex" class="pokedex"></ul>
     </section>
 
     <section class="panel training-section">
-      <h2>Entrenamiento</h2>
+      <div class="panel-header">
+        <h2>🏋️ Entrenamiento</h2>
+        <p class="panel-subtitle">Mejora tus habilidades</p>
+      </div>
       <div class="training-controls">
-        <label>Modo: <select id="trainMode"><option value="flash">Flashcards</option><option value="quiz">Quiz</option></select></label>
-        <button id="toggleTypeGuide" class="start-btn secondary" type="button">Guía de tipos</button>
-        <label style="display:flex;align-items:center;gap:8px">Ver como:
-          <select id="typeGuideView" style="margin-left:6px"><option value="auto">Auto</option><option value="table">Tabla</option><option value="cards">Tarjetas</option></select>
-        </label>
+        <div class="control-group">
+          <label for="trainMode">Modo:</label>
+          <select id="trainMode" class="control-select">
+            <option value="flash">Flashcards</option>
+            <option value="quiz">Quiz</option>
+          </select>
+        </div>
+        <button id="toggleTypeGuide" class="btn-secondary">📊 Guía de tipos</button>
+        <div class="control-group">
+          <label for="typeGuideView">Vista:</label>
+          <select id="typeGuideView" class="control-select">
+            <option value="auto">Auto</option>
+            <option value="table">Tabla</option>
+            <option value="cards">Tarjetas</option>
+          </select>
+        </div>
       </div>
 
       <div id="typeGuide" class="type-guide" style="display:none"></div>
 
       <div id="flash" class="training-view">
-        <div id="flashCard" class="flashcard">
-          <div id="flashFront" class="front"></div>
-          <div id="flashBack" class="back"></div>
+        <div class="flashcard-wrapper">
+          <div id="flashCard" class="flashcard">
+            <div id="flashFront" class="front"></div>
+            <div id="flashBack" class="back"></div>
+          </div>
         </div>
         <div class="controls">
-          <button id="prevCard">Anterior</button>
-          <button id="flipCard">Voltear</button>
-          <button id="nextCard">Siguiente</button>
+          <button id="prevCard" class="btn-secondary">← Anterior</button>
+          <button id="flipCard" class="btn-primary">Voltear</button>
+          <button id="nextCard" class="btn-secondary">Siguiente →</button>
         </div>
       </div>
 
       <div id="quiz" class="training-view" style="display:none">
         <div class="quiz-settings">
-          <span class="quiz-label">Nivel:</span>
-          <div class="level-options">
-              <button type="button" class="level-btn" data-level="table">Tabla de tipos</button>
-            <button type="button" class="level-btn active" data-level="basic">Básico</button>
-            <button type="button" class="level-btn" data-level="advanced">Avanzado</button>
-            <button type="button" class="level-btn" data-level="maestro">Maestro</button>
+          <div class="settings-group">
+            <label class="quiz-label">Elige un nivel:</label>
+            <div class="level-options">
+              <button type="button" class="level-btn" data-level="table">Tabla</button>
+              <button type="button" class="level-btn active" data-level="basic">Básico</button>
+              <button type="button" class="level-btn" data-level="advanced">Avanzado</button>
+              <button type="button" class="level-btn" data-level="maestro">Maestro</button>
+            </div>
           </div>
         </div>
         <div id="questionArea" class="quiz"></div>
         <div class="controls quiz-actions">
-          <button id="startQuiz">Iniciar Quiz</button>
+          <button id="startQuiz" class="btn-primary">Comenzar Quiz</button>
           <div id="score" class="quiz-score"></div>
         </div>
         <div id="feedback" class="feedback" aria-live="polite" style="display:none"></div>
@@ -88,7 +134,10 @@
   </main>
 
   <footer>
-    <small>Hecho para pruebas rápidas — no es oficial.</small>
+    <div class="footer-content">
+      <p>Pokémon Champions VGC • Plataforma de entrenamiento competitivo</p>
+      <p class="footer-note">Hecho con ❤️ para jugadores competitivos • No afiliado a Nintendo/Pokémon</p>
+    </div>
   </footer>
 
   <!-- Modal de resultados del Quiz -->

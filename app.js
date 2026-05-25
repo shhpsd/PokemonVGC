@@ -1,16 +1,4 @@
-// Lista reducida de pokémon para pruebas
-const POKEMON = [
-  { id: 1, name: 'Incineroar', tag: 'Fire/Dark' },
-  { id: 2, name: 'Dragapult', tag: 'Dragon/Ghost' },
-  { id: 3, name: 'Togekiss', tag: 'Fairy/Flying' },
-  { id: 4, name: 'Landorus-T', tag: 'Ground/Flying' },
-  { id: 5, name: 'Gastrodon', tag: 'Water/Ground' },
-  { id: 6, name: 'Urshifu-R', tag: 'Fighting/Dark' },
-  { id: 7, name: 'Tapu Fini', tag: 'Water/Fairy' },
-  { id: 8, name: 'Rotom-Wash', tag: 'Electric/Water' },
-  { id: 9, name: 'Hawlucha', tag: 'Fighting/Flying' },
-  { id:10, name: 'Ferrothorn', tag: 'Grass/Steel' }
-];
+
 
 const TYPE_CHART = {
   Normal: { strongAgainst: [], weakAgainst: ['Fighting'] },
@@ -159,12 +147,13 @@ async function getPokemonData(name){
 function renderPokedex(filter = ''){
   const list = $("pokedex");
   list.innerHTML = '';
-  const filtered = POKEMON.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
+  const bank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) && QUESTIONS.length>0) ? QUESTIONS : [];
+  const filtered = bank.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
   filtered.forEach(p => {
     const li = document.createElement('li');
     const row = document.createElement('div'); row.className='poke-row';
     const spriteWrap = document.createElement('span'); spriteWrap.className='poke-sprite'; spriteWrap.textContent = p.name.charAt(0);
-    const info = document.createElement('div'); info.innerHTML = `<strong>${p.name}</strong><div class="muted">${p.tag}</div>`;
+    const info = document.createElement('div'); info.innerHTML = `<strong>${p.name}</strong><div class="muted">—</div>`;
     row.appendChild(spriteWrap); row.appendChild(info);
     li.appendChild(row);
     li.onclick = () => addToTeam(p);
@@ -172,7 +161,7 @@ function renderPokedex(filter = ''){
     // async fetch real data
     getPokemonData(p.name).then(d=>{
       if(d.sprite){ spriteWrap.innerHTML = `<img src="${d.sprite}" alt="${d.name}"/>`; }
-      info.querySelector('.muted').textContent = d.types || p.tag;
+      info.querySelector('.muted').textContent = d.types || '—';
     });
   });
 }
@@ -234,7 +223,8 @@ function clearTeam(){
 
 function randomTeam(){
   clearTeam();
-  const copy = [...POKEMON];
+  const bank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) && QUESTIONS.length>0) ? QUESTIONS : [];
+  const copy = [...bank];
   while(team.length < 6 && copy.length){
     const i = Math.floor(Math.random()*copy.length);
     team.push(copy.splice(i,1)[0]);
@@ -284,23 +274,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Flashcards
   let flashIndex = 0;
   function renderFlash(){
-    // Use QUESTIONS bank if provided, otherwise fallback to POKEMON
+    // Use QUESTIONS bank exclusively
     const bank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) && QUESTIONS.length>0)
       ? QUESTIONS.map(q=>({ id: q.id, name: q.name, slug: q.slug }))
-      : POKEMON.map(p=>({ id: p.id, name: p.name }));
+      : [];
     if(bank.length === 0) return;
     const card = bank[flashIndex % bank.length];
     // fetch sprite and types
-    getPokemonData(card.name).then(d=>{
+    const identifier = (card && card.slug) ? card.slug : ((typeof card.id !== 'undefined') ? card.id : card.name);
+    getPokemonData(identifier).then(d=>{
       const spriteHtml = d.sprite ? `<img src="${d.sprite}" alt="${d.name}"/>` : d.name.charAt(0);
-      $('flashCard').innerHTML = `<div class="flash-sprite">${spriteHtml}</div><div class="flash-content"><div id="flashFront" class="front">${d.name}</div><div id="flashBack" class="back" style="display:none">${d.types ?? card.tag}</div></div>`;
+      $('flashCard').innerHTML = `<div class="flash-sprite">${spriteHtml}</div><div class="flash-content"><div id="flashFront" class="front">${d.name}</div><div id="flashBack" class="back" style="display:none">${d.types ?? '—'}</div></div>`;
     });
   }
   $('flipCard').addEventListener('click', ()=>{
     const back = document.getElementById('flashBack'); if(!back) return; back.style.display = back.style.display === 'block' ? 'none' : 'block';
   });
-  $('nextCard').addEventListener('click', ()=>{ flashIndex = (flashIndex+1)%POKEMON.length; renderFlash(); });
-  $('prevCard').addEventListener('click', ()=>{ flashIndex = (flashIndex-1+POKEMON.length)%POKEMON.length; renderFlash(); });
+  const flashBank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) && QUESTIONS.length>0) ? QUESTIONS : [];
+  $('nextCard').addEventListener('click', ()=>{ flashIndex = (flashIndex+1)%Math.max(flashBank.length, 1); renderFlash(); });
+  $('prevCard').addEventListener('click', ()=>{ flashIndex = (flashIndex-1+Math.max(flashBank.length, 1))%Math.max(flashBank.length, 1); renderFlash(); });
   renderFlash();
 
   // Type guide rendering (responsive / selectable)
@@ -367,18 +359,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
+  // Handle type guide view mode change
+  const viewSelect = document.getElementById('typeGuideView');
+  if(viewSelect){
+    viewSelect.addEventListener('change', ()=>{
+      const el = document.getElementById('typeGuide');
+      if(el && el.style.display !== 'none') renderTypeGuide();
+    });
+  }
+
   // Quiz
   let quizQuestions = [];
   let quizPos = 0;
   let quizScore = 0;
-  // Build quiz from QUESTIONS (from questions.js) or fallback to POKEMON
+  // Build quiz from QUESTIONS (from questions.js)
   async function makeQuiz(n=10){
     if(selectedQuizLevel === 'table'){
       return makeTypeQuiz(n);
     }
     const bank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) && QUESTIONS.length>0)
       ? QUESTIONS.map(q=>({ id: q.id, name: q.name, slug: q.slug }))
-      : POKEMON.map(p=>({ id: p.id, name: p.name }));
+      : [];
     const questions = [];
     for(let i=0;i<n;i++){
       const idx = Math.floor(Math.random()*bank.length);
@@ -420,7 +421,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const COMMON_TYPES = ['Normal','Fire','Water','Grass','Electric','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
       const seen = new Set();
       const uniqueChoices = [];
-      // keep correct first
+      // keep correct first (can be multiple types like "Fire/Flying")
       if(correctData.types && !seen.has(correctData.types)){ seen.add(correctData.types); uniqueChoices.push(correctData.types); }
       // add from generated choices
       for(const c of choices){ if(uniqueChoices.length>=4) break; if(c.types && !seen.has(c.types)){ seen.add(c.types); uniqueChoices.push(c.types); } }
@@ -439,9 +440,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
       // Use the display name from the QUESTIONS bank when available
       const displayName = (correct && correct.name) ? correct.name : correctData.name;
+      // Convert correct types to array (can be "Fire/Flying" or single type "Fire")
+      const correctTypes = correctData.types ? correctData.types.split('/').map(t=>t.trim()) : [];
       questions.push({
         q: `¿Cuál es el tipo de ${displayName}?`,
-        correct: correctData.types,
+        correct: correctTypes,
         choices: uniqueChoices.slice(0,4),
         pokemon: { name: displayName, sprite: correctData.sprite }
       });
@@ -491,11 +494,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(d.classList.contains('answered')) return;
         d.classList.add('answered');
         const fb = $('feedback');
-        if(c === q.correct){ d.classList.add('correct'); quizScore++; fb.textContent = '¡Correcto!'; fb.className='feedback ok'; }
-        else { d.classList.add('wrong'); fb.textContent = `Incorrecto — la respuesta correcta es: ${q.correct}`; fb.className='feedback bad'; }
+        // Check if user's choice matches any of the correct types (array)
+        const isCorrect = Array.isArray(q.correct) ? q.correct.includes(c) : c === q.correct;
+        if(isCorrect){ d.classList.add('correct'); quizScore++; fb.textContent = '¡Correcto!'; fb.className='feedback ok'; }
+        else { d.classList.add('wrong'); const correctStr = Array.isArray(q.correct) ? q.correct.join(' o ') : q.correct; fb.textContent = `Incorrecto — la respuesta correcta es: ${correctStr}`; fb.className='feedback bad'; }
         fb.style.display = 'block';
-        // reveal correct
-        Array.from(ch.children).forEach(node=>{ if(node.textContent===q.correct) node.classList.add('correct'); node.style.pointerEvents='none'; });
+        // reveal all correct answers (if multiple)
+        const correctArr = Array.isArray(q.correct) ? q.correct : [q.correct];
+        Array.from(ch.children).forEach(node=>{ if(correctArr.includes(node.textContent)) node.classList.add('correct'); node.style.pointerEvents='none'; });
         quizPos++;
         updateScore();
         setTimeout(()=>{ fb.style.display='none'; renderQuizQuestion(); }, 1100);
