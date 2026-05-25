@@ -35,28 +35,31 @@ function makeTypeQuiz(n=8){
   for(let i=0;i<n;i++){
     const base = TYPE_LIST[Math.floor(Math.random()*TYPE_LIST.length)];
     const mode = Math.random() < 0.5 ? 'attack' : 'weakness';
-    let correct;
+    let correctAll;
     let prompt;
     if(mode === 'attack'){
-      const opponents = TYPE_LIST.filter(type => TYPE_CHART[type].strongAgainst.includes(base));
-      if(opponents.length === 0){ i--; continue; }
-      correct = opponents[Math.floor(Math.random()*opponents.length)];
+      correctAll = TYPE_LIST.filter(type => TYPE_CHART[type].strongAgainst.includes(base));
+      if(correctAll.length === 0){ i--; continue; }
       prompt = `¿Qué tipo le gana a ${base}?`;
     } else {
-      const targets = TYPE_CHART[base].strongAgainst;
-      if(!targets.length){ i--; continue; }
-      correct = targets[Math.floor(Math.random()*targets.length)];
+      correctAll = [...TYPE_CHART[base].strongAgainst];
+      if(!correctAll.length){ i--; continue; }
       prompt = `¿Qué tipo es débil a ${base}?`;
     }
-    const choices = new Set([correct]);
-    const distractors = TYPE_LIST.filter(type => type !== correct && type !== base);
+    const seed = correctAll[Math.floor(Math.random()*correctAll.length)];
+    const choices = new Set([seed]);
+    if(correctAll.length > 1){
+      const extras = correctAll.filter(t => t !== seed);
+      choices.add(extras[Math.floor(Math.random() * extras.length)]);
+    }
+    const distractors = TYPE_LIST.filter(type => !correctAll.includes(type) && type !== base);
     shuffleArray(distractors);
     while(choices.size < 4 && distractors.length){
       choices.add(distractors.shift());
     }
     questions.push({
       q: prompt,
-      correct,
+      correct: correctAll,
       choices: shuffleArray(Array.from(choices)).slice(0,4),
       typeMode: 'table',
       baseType: base
@@ -75,13 +78,80 @@ try{ POKE_CACHE = JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || '{}') }catc
 
 async function saveCache(){ localStorage.setItem(POKE_CACHE_KEY, JSON.stringify(POKE_CACHE)); }
 
-async function getPokemonData(name){
-  const raw = String(name ?? '');
-  // normalize cache key
-  const key = (typeof raw === 'number' || /^[0-9]+$/.test(raw)) ? `id-${String(raw)}` : raw.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-  if(POKE_CACHE[key]) return POKE_CACHE[key];
+const POKE_FORM_ALIASES = {
+  meowstic: 'meowstic-male',
+  lycanroc: 'lycanroc-midday',
+  mimikyu: 'mimikyu-disguised',
+  urshifu: 'urshifu-single-strike',
+  palafin: 'palafin-zero'
+};
 
-  // helper to extract best sprite from API response
+function normalizePokeKey(value){
+  return String(value ?? '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+let POKE_SLUG_BY_NAME = null;
+function getPokeSlugLookup(){
+  if(POKE_SLUG_BY_NAME) return POKE_SLUG_BY_NAME;
+  POKE_SLUG_BY_NAME = new Map();
+  const bank = (typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS)) ? QUESTIONS : [];
+  for(const q of bank){
+    if(q.slug) POKE_SLUG_BY_NAME.set(normalizePokeKey(q.name), q.slug);
+  }
+  return POKE_SLUG_BY_NAME;
+}
+
+function resolveApiSlug(input){
+  if(input == null) return '';
+  if(typeof input === 'object'){
+    if(input.slug){
+      const slug = input.slug;
+      return POKE_FORM_ALIASES[slug] || slug;
+    }
+    if(input.name) return resolveApiSlug(input.name);
+    if(input.id != null) return String(input.id);
+    return '';
+  }
+  const raw = String(input).trim();
+  if(/^[0-9]+$/.test(raw)) return raw;
+  const lookup = getPokeSlugLookup();
+  const key = normalizePokeKey(raw);
+  if(lookup.has(key)) return lookup.get(key);
+
+  const lower = raw.toLowerCase();
+  const regional = lower.match(/^(.+?)\s+de\s+(alola|hisui)$/);
+  if(regional) return `${regional[1].trim().replace(/\s+/g,'-')}-${regional[2]}`;
+
+  const mega = lower.match(/^mega[-\s]+(.+?)(?:\s+([xy]))?$/i);
+  if(mega){
+    const base = mega[1].trim().replace(/\s+/g,'-');
+    return mega[2] ? `${base}-mega-${mega[2].toLowerCase()}` : `${base}-mega`;
+  }
+
+  const rotom = lower.match(/^rotom\s+(.+)$/);
+  if(rotom){
+    const forms = { calor: 'heat', lavado: 'wash', frio: 'frost', ventilador: 'fan', corte: 'mow' };
+    const formKey = rotom[1].normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(forms[formKey]) return `rotom-${forms[formKey]}`;
+  }
+
+  const kebab = lower.replace(/\s+/g,'-');
+  return POKE_FORM_ALIASES[kebab] || kebab;
+}
+
+async function getPokemonData(nameOrEntry){
+  const displayName = (typeof nameOrEntry === 'object' && nameOrEntry?.name)
+    ? nameOrEntry.name
+    : String(nameOrEntry ?? '');
+  const slug = resolveApiSlug(nameOrEntry);
+  const key = displayName
+    ? normalizePokeKey(displayName)
+    : (/^[0-9]+$/.test(slug) ? `id-${slug}` : `slug-${slug}`);
+  const cached = POKE_CACHE[key];
+  if(cached && !(cached.types === 'Unknown' && slug)) return cached;
+
   function pickSprite(data){
     if(!data || !data.sprites) return null;
     return data.sprites.other?.home?.front_default
@@ -97,49 +167,30 @@ async function getPokemonData(name){
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
-  // If raw is numeric, fetch by id directly
-  const candidates = [];
-  if(typeof name === 'number' || /^[0-9]+$/.test(raw)){
-    candidates.push(String(raw));
-  } else {
-    candidates.push(raw.toLowerCase().replace(/\s+/g,'-'));
-    candidates.push(raw.toLowerCase().replace(/\s+/g,''));
-    candidates.push(raw.toLowerCase());
-  }
-
-  for(const c of candidates){
-    if(!c) continue;
+  if(slug){
     try{
-      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(c)}`);
-      if(!res.ok) continue;
-      const data = await res.json();
-      const types = data.types.map(t=>t.type.name.charAt(0).toUpperCase()+t.type.name.slice(1)).join('/');
-      // Prefer API-provided sprites; if missing, fall back to raw GitHub sprite URLs
-      let sprite = pickSprite(data);
-      if(!sprite && data.id){
-        // small sprite first, then official artwork
-        sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${data.id}.png`;
-        // we prefer official-artwork URLs for clearer images
-        sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png` || sprite;
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(slug)}`);
+      if(res.ok){
+        const data = await res.json();
+        const types = data.types.map(t=>t.type.name.charAt(0).toUpperCase()+t.type.name.slice(1)).join('/');
+        let sprite = pickSprite(data);
+        if(!sprite && data.id){
+          sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`;
+        }
+        if(!sprite) sprite = placeholderSvg(displayName || data.name);
+        const entry = { name: displayName || data.name, types, sprite };
+        POKE_CACHE[key]=entry; await saveCache();
+        return entry;
       }
-      // last resort: placeholder SVG
-      if(!sprite) sprite = placeholderSvg(data.name || raw);
-      const entry = { name: data.name, types, sprite };
-      POKE_CACHE[key]=entry; await saveCache();
-      return entry;
-    }catch(e){
-      continue;
-    }
+    }catch(e){ /* fall through to placeholder */ }
   }
 
-  // fallback when no candidate matched
-  // if raw is numeric, try direct sprite urls from the sprites repo
   let sprite = null;
-  if(/^[0-9]+$/.test(raw)){
-    sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${raw}.png`;
+  if(/^[0-9]+$/.test(slug)){
+    sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${slug}.png`;
   }
-  if(!sprite) sprite = placeholderSvg(raw);
-  const entry = { name: raw, types: 'Unknown', sprite };
+  if(!sprite) sprite = placeholderSvg(displayName || slug);
+  const entry = { name: displayName || slug, types: 'Unknown', sprite };
   POKE_CACHE[key]=entry; await saveCache();
   return entry;
 }
@@ -159,7 +210,7 @@ function renderPokedex(filter = ''){
     li.onclick = () => addToTeam(p);
     list.appendChild(li);
     // async fetch real data
-    getPokemonData(p.name).then(d=>{
+    getPokemonData(p).then(d=>{
       if(d.sprite){ spriteWrap.innerHTML = `<img src="${d.sprite}" alt="${d.name}"/>`; }
       info.querySelector('.muted').textContent = d.types || '—';
     });
@@ -185,7 +236,7 @@ function renderTeam(){
     rem.onclick = () => { team.splice(i,1); renderTeam(); };
     li.appendChild(spriteWrap); li.appendChild(info); li.appendChild(rem);
     // fetch sprite/types
-    getPokemonData(p.name).then(d=>{ if(d.sprite) spriteWrap.innerHTML = `<img src="${d.sprite}" alt="${d.name}"/>`; info.querySelector('.muted').textContent = d.types || p.tag; });
+    getPokemonData(p).then(d=>{ if(d.sprite) spriteWrap.innerHTML = `<img src="${d.sprite}" alt="${d.name}"/>`; info.querySelector('.muted').textContent = d.types || p.tag; });
     list.appendChild(li);
   });
 }
@@ -281,8 +332,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(bank.length === 0) return;
     const card = bank[flashIndex % bank.length];
     // fetch sprite and types
-    const identifier = (card && card.slug) ? card.slug : ((typeof card.id !== 'undefined') ? card.id : card.name);
-    getPokemonData(identifier).then(d=>{
+    getPokemonData(card).then(d=>{
       const spriteHtml = d.sprite ? `<img src="${d.sprite}" alt="${d.name}"/>` : d.name.charAt(0);
       $('flashCard').innerHTML = `<div class="flash-sprite">${spriteHtml}</div><div class="flash-content"><div id="flashFront" class="front">${d.name}</div><div id="flashBack" class="back" style="display:none">${d.types ?? '—'}</div></div>`;
     });
@@ -326,7 +376,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      container.appendChild(table);
+      const scroll = document.createElement('div');
+      scroll.className = 'type-table-scroll';
+      scroll.appendChild(table);
+      container.appendChild(scroll);
     } else if(useCards){
       const grid = document.createElement('div'); grid.className = 'type-grid';
       TYPE_LIST.forEach(attack=>{
@@ -386,8 +439,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const correct = bank[idx];
       // fetch real data for correct using the numeric Pokédex id when available
       // Prefer an explicit slug in QUESTIONS for exact-form sprites (e.g. 'raichu-alola')
-      const identifier = (correct && correct.slug) ? correct.slug : ((typeof correct.id !== 'undefined') ? correct.id : correct.name);
-      const correctData = await getPokemonData(identifier);
+      const correctData = await getPokemonData(correct);
       // select other choices (filter by different id)
       const others = bank.filter(p=>p.id !== correct.id);
       const choices = [correctData];
@@ -397,8 +449,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         attempts++;
         const j = Math.floor(Math.random()*others.length);
         const pick = others.splice(j,1)[0];
-        const pickIdentifier = (pick && pick.slug) ? pick.slug : ((typeof pick.id !== 'undefined') ? pick.id : pick.name);
-        const pickData = await getPokemonData(pickIdentifier);
+        const pickData = await getPokemonData(pick);
         if(pickData.types && pickData.types !== 'Unknown') choices.push(pickData);
         else {
           // keep as fallback but try to fill up choices with known types
@@ -410,8 +461,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const rem = bank.filter(p=>!choices.find(c=>c.name===p.name));
         while(choices.length<4 && rem.length){
           const r = rem.splice(0,1)[0];
-          const rId = (r && r.slug) ? r.slug : ((typeof r.id !== 'undefined') ? r.id : r.name);
-          const rd = await getPokemonData(rId);
+          const rd = await getPokemonData(r);
           choices.push(rd);
         }
       }
@@ -428,7 +478,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // try remaining bank to find other types
       if(uniqueChoices.length < 4){
         const rem = bank.filter(p=>p.id !== correct.id);
-        for(const r of rem){ if(uniqueChoices.length>=4) break; const rId = (typeof r.id !== 'undefined') ? r.id : r.name; const rd = await getPokemonData(rId); if(rd.types && !seen.has(rd.types)){ seen.add(rd.types); uniqueChoices.push(rd.types); } }
+        for(const r of rem){ if(uniqueChoices.length>=4) break; const rd = await getPokemonData(r); if(rd.types && !seen.has(rd.types)){ seen.add(rd.types); uniqueChoices.push(rd.types); } }
       }
       // fallback to common types list
       for(const t of COMMON_TYPES){ if(uniqueChoices.length>=4) break; if(!seen.has(t)) { seen.add(t); uniqueChoices.push(t); } }
@@ -440,11 +490,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
       // Use the display name from the QUESTIONS bank when available
       const displayName = (correct && correct.name) ? correct.name : correctData.name;
-      // Convert correct types to array (can be "Fire/Flying" or single type "Fire")
-      const correctTypes = correctData.types ? correctData.types.split('/').map(t=>t.trim()) : [];
+      // Must match choice labels exactly (e.g. "Fire/Flying", not ["Fire","Flying"])
+      const correctAnswer = correctData.types || '';
       questions.push({
         q: `¿Cuál es el tipo de ${displayName}?`,
-        correct: correctTypes,
+        correct: correctAnswer,
         choices: uniqueChoices.slice(0,4),
         pokemon: { name: displayName, sprite: correctData.sprite }
       });
@@ -494,14 +544,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(d.classList.contains('answered')) return;
         d.classList.add('answered');
         const fb = $('feedback');
-        // Check if user's choice matches any of the correct types (array)
-        const isCorrect = Array.isArray(q.correct) ? q.correct.includes(c) : c === q.correct;
+        const correctList = Array.isArray(q.correct) ? q.correct : [q.correct];
+        const isCorrect = correctList.includes(c);
         if(isCorrect){ d.classList.add('correct'); quizScore++; fb.textContent = '¡Correcto!'; fb.className='feedback ok'; }
-        else { d.classList.add('wrong'); const correctStr = Array.isArray(q.correct) ? q.correct.join(' o ') : q.correct; fb.textContent = `Incorrecto — la respuesta correcta es: ${correctStr}`; fb.className='feedback bad'; }
+        else { d.classList.add('wrong'); fb.textContent = `Incorrecto — ${correctList.length > 1 ? 'las respuestas correctas son' : 'la respuesta correcta es'}: ${correctList.join(' o ')}`; fb.className='feedback bad'; }
         fb.style.display = 'block';
-        // reveal all correct answers (if multiple)
-        const correctArr = Array.isArray(q.correct) ? q.correct : [q.correct];
-        Array.from(ch.children).forEach(node=>{ if(correctArr.includes(node.textContent)) node.classList.add('correct'); node.style.pointerEvents='none'; });
+        Array.from(ch.children).forEach(node=>{ if(correctList.includes(node.textContent)) node.classList.add('correct'); node.style.pointerEvents='none'; });
         quizPos++;
         updateScore();
         setTimeout(()=>{ fb.style.display='none'; renderQuizQuestion(); }, 1100);

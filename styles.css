@@ -577,13 +577,24 @@ select:focus {
   background: linear-gradient(135deg, var(--bg-card), var(--bg-card-light));
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.type-table-scroll {
+  width: 100%;
+  max-height: min(70vh, 560px);
   overflow-x: auto;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .type-table {
   border-collapse: collapse;
-  width: 100%;
-  min-width: 800px;
+  width: max-content;
+  min-width: 100%;
   font-size: 0.9rem;
 }
 
@@ -592,10 +603,12 @@ select:focus {
   border: 1px solid var(--border);
   padding: 0.75rem;
   text-align: center;
+  min-width: 3.25rem;
+  white-space: nowrap;
 }
 
 .type-table th {
-  background: rgba(255, 214, 10, 0.05);
+  background: var(--bg-card-light);
   font-weight: 700;
   color: var(--primary);
   position: sticky;
@@ -604,11 +617,16 @@ select:focus {
 }
 
 .type-table .type-name {
-  background: rgba(255, 214, 10, 0.05);
+  background: var(--bg-card-light);
   font-weight: 700;
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 3;
+}
+
+.type-table thead th:first-child {
+  left: 0;
+  z-index: 4;
 }
 
 .cell-2x {
